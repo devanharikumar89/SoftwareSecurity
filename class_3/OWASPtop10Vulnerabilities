@@ -1,0 +1,285 @@
+OWASP
+
+
+A wordwide organization focused on improving the security of web applications
+
+Part 1 :
+Injection
+Broken Authentication and Session management
+Cross site scripting
+
+Part 2:
+Insecure direct object references
+Security misconfiguration
+Sensitive Data Exposure
+Missing function level access control
+Cross site request forgery
+Using components with known vulnerabilities
+Unvalidated redirects and forwards
+
+Trinity of trouble that makes software security difficult:
+Connectivity Complexity and extensibility
+
+Java .NET and other service oriented architecture frameworks allow dynamic bindings at run time - so pluggable stuff - more functionality - very difficult to provide security
+
+Bigger code - security tradeoff (security - functionality tradeoff)
+
+Functionality, budget, technology, time and regulations(limitations to security)
+
+When 2 weeks are given to develop something that would take 2 months 
+
+Security vs downside 
+
+If we build this feature can we do so securely - ask this question when you give up on security
+
+Injection :
+
+When proper care is not taken about data provided by outsiders. This data if used to created executable without proper validation - can lead to code with security breaches. If any part of the data plan can be treated as code as part of the control plane there is likely a security issue.
+
+SQL, 
+Command, 
+XML, 
+XML DTD injections
+
+SQL Injection :
+3 methods to pass untrusted data :
+Parameter marks - ? Mark characters 
+Variables - typically used in stored procedures (@username)
+String Concatenation - dangerous
+
+Example for string concatenation problem
+
+SQL injection can lead to 
+Integrity failure
+Authorization failure
+Availability failure
+Complete compromise
+
+To check start with single quotes, double quotes, parantheses.
+Possible locations of sql injection - cookie values, form fields, POST and GET parameters and HTTP headers
+
+For integer data types, try arithmetic that is equivalent to the normal use case
+ how to avoid :
+Use parameter markers
+Use variables
+Perform input validation 
+
+Tradeoff : security vs usability
+
+Using parameterized queries (parameter markers)
+PreparedStatement API - user input cannot affect the structure of the query. ? Represents the data at run time
+
+With PreparedStatement API , we still have to parameterize the query. Otherwise it is still vulnerable
+
+.NET uses dynamic variables - another way of protecting against the SQL injection
+
+Stored procedures - compiled code that reside within dbms - as long as they don’t produce dynamic queries based on the input variables
+
+Command Injection:
+Injecting system calls form user without validating
+Passing rm -rf to a command
+
+How to test :
+Do not run destructive commands - run ls etc
+Remember ; and | can be used to combine commands
+If there is no output at the client side check the server to see if the command is executed
+
+Whenever possible system calls should be static - no user input
+Ensure all system components are running with the least required permissions.
+
+
+XML injection :
+
+Structured data - so input should be validated - an attacker could introduce new elements - change behaviour, could create dos attacks etc by creating deeply nested attributes and components
+
+Malformed xml fragments can be sent to the application to do the testing
+
+Internal and external entities
+
+(read about this 30-37-…)
+
+Avoid by :
+Secure parser config
+Disallow entity resolution
+Limit entity expansion path
+Validate xml messages against dtd or xsd
+
+All injections - treated as :
+Output encoding:
+    1. All data treated as data
+    2. Store data in its raw format and encode just before outputting it
+Input validation :
+    1. Consider all of an application's inputs
+    2.  (white lists and black lists) white lists - should be preferred
+    
+Logging and Auditing
+    1. Compensate for missing active controls
+    2. Help identify attacks that succeed
+Keep logging the inputs.
+
+
+Broken Auth and Sesssion Management
+
+The http protocol is stateless. 
+So each request response pair is isolated.
+So we need some mechanisms to bundle them together
+Session id from the user cannot be trusted, afterall it's user data
+User impersonation, privilege escalation and replay attacks etc
+Application server should handle most of the session management issues
+
+The session identifiers must be 
+
+Unguessable
+Non colliding
+Valid for limited Durations
+
+User makes a request
+Web server makes a unique id and stores in a cookie
+Subsequent requests from the browser (from the same user) will automatically include the cookie
+If the Id from another user is the same (natural cause or malicious) the server would consider the request as to be originating from the original guy
+
+Session hijacking:
+Intentional mimicking of session 
+    1. Stealing using XSS or sniffing
+    2. Session ID prediction (brute forcing)
+    3. Session fixation
+
+User requests something
+Server allocated a unique ID to the user
+Using 1, 2 or 3 attacker gets the ID
+Edits own cookie and requests something to the server
+Server would think it is the user
+
+    1. Exploiting cross site scripting vulnerability. When the victims browser receives such a request it thinks the request is from the vulnerable web server. 
+    Sniffing - packet capture software if the communication between client and server is not encrypted
+    2. Brute forcing - sequential ids or random ids with small range etc. (gets one ID and find another)
+    3. Fixation - Attacker fixes the user's session before the user even logs in. This can happen like : The attacker finds a website that sends session id as part of the url and sends that url to the user. When the user clicks on it if the server does not provide a new id, then they have the same session now!
+To protect against these issue :
+
+    1. Invalidate the session after he logs out, after a some time even if logged in
+    2. Do not accept session identifiers from GET and POST calls
+    3. Use cookie session ids with changing tokens
+    4. Only accept IDs generated by the server
+    5. Regenerate ID after a successful login
+    6. Utilize SSL/TLS for the entire website to avoid MIM attacks
+    7. Map session IDS to ip addresses
+    8. Have the user re-authenticate before any important action
+    9. Set the secure attribute in the cookie so that SSL/TLS is required to transmit it
+    10. Mark cookies as HttpOnly so that they are not accessible to malicious javascript (XSS)
+    11. Use long, random id
+    12. Minimize the use of persistent cookies
+
+Broken Authentication :
+
+Username enumeration : Do not give specific error message (username wrong / password wrong)
+Weak password policies
+Lack of account lock outs (more than 4 retries)
+Password reset functionality (the link should be unguessable)
+Lack of authentication (for some links)
+
+Cross Site Scripting:
+
+Web applications generally allow java script from 3rd party vendors run on their behalf because they do not want to implement it themselves or for any other reason (to provide use cases) increased cost etc. These java script execs can make arbitrary GET POST calls etc. Javascript can affect what the user sees. So a malicious user input java script has access to session cookies.
+Browser cannot know it was meant to be data and not code
+Same origin policy : a malicious site cannot get your browser to send requests on their behalf
+
+3 common type of XSS
+    1. Reflected/Non persistent
+    JS code in a request is reflected by a website but not stored. An attacker will craft a link to the vulnerable site that injects some JS code to it when the link is opened in a web browser. This link is given to the user and if he clicks on that -
+    2. Stored/ persistent
+    The scripts are permanently stored by the website in databases, XML files etc. No clicking required. Whenever a website is visited, automatically happens
+    3. DOM based 
+    Scripts are added to the page using other JS on the page. Server may never see the malicious payload
+    
+Using XSS, 
+    1. Capture cookies
+    2. Change a webpage content
+    3. Execute requests on user's behalf
+    4. Fake login screen
+    5. Port scanning
+
+
+    To avoid : typical browsing behavior - scripts from other websites should not be able to run in this website. All the scripts that run should be from the same origin. Pages cannot access DOMs (Document Object Model) of other pages.
+    Unfortunately, XSS tricks the originating server to serve up the malicious script and so we think they have the same origin and hence it gets all privileges like cookie access
+    
+    
+    Example 1: Store XSS attack - attacker stores a malicious script in a forum in a public server. The user requests - gets the script. The script has access to his cookies and will send that information to the attacker.
+    
+    Example 2: Attacker makes script in the error message field of the url and ends it to victim via email. Users visit the website with malicious error message specified by the attacker. Webpage reflects the malicious error message to the victims. (that error message will have the cookie information as per the script that was injected)
+    
+Testing :
+Ensure some form of output encoding (so that shall not be seen as code)
+Input validation is done at least on the server, so that the data entered by the user is syntactically and semantically correct
+Use static and dynamic analysis tools
+
+The user controlled input should not be reflected back to the user. 
+Output encoding and input validation
+Do both on the server side, client side checks can improve UI friendliness, but will not prevent the attack
+Logging and 
+
+HTML encoding - slide number 67
+
+Eg : java.net.urlEncoder
+
+
+Insecure Direct Object References
+
+When developers expose a URL or a form parameter that points to an object such as a file/directory or a database.
+    1. Reading or modification of unauth. Files
+    2. Denial of service by reading files that block access to the system
+    3. Remote code execution 
+    
+Using input unaltered (slide 74, 75)
+File name taken from the user to download. Instead of filename ../../../etc/passwd%00 (end of line)
+%00 null byte character - treated as End of String
+
+Test :
+Identify all the request parameters to reference resource objects
+Do not rely on automated tools for this
+Code review
+Alter parameters to other known values that should not be authorized
+
+Attempt path traversal where request parameters are used in file names
+
+Prevent this problem ?
+    1. Verify user access to each object requested
+    2. Sandbox via code access policies or chrooted jails to restrict the file access
+    3. Use indirect reference maps to match object references with object IDs
+
+Security Misconfiguration 
+
+Tools like Metasploit framework make attacks easier because they package vulnerabilities together into an easy to use interface. Not changing default in tomcat. Change the url : www..../manager - will give access to a lot of information. This happens because it is not properly configured
+Nessus - a tool to get a list of issues that could be there for the system
+
+How to Avoid :
+    1. Configuration that is vendor supported.
+    2. Stay uptodate with vendor issued patches
+    3. Test patches properly
+    4. Use system hardening
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+    
+    
+    
+
+
+
+
+
+
+
+
